@@ -103,7 +103,7 @@ mastercube-groundstation/
 
 **John Adam**
 Computer Engineering & IT
-Focus: Space Systems, Machine Learning, Deep Learning
+Focus: Space Systems, Machine Learning, Deep Learning, IoT
 
 ---
 
