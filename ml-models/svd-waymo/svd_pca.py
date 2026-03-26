@@ -24,3 +24,18 @@ def project_data(X, components, mean, k = 2):
     """
     X_centered = X - mean
     return np.dot(X_centered, components[:k].T)
+
+def reconstruct_data(X, components, mean, k):
+    """
+    Reconstruct data from top-k principal components
+    """
+    # Center data
+    X_centered = X - mean
+
+    # Project to lower dimension
+    projected = X_centered @ components[:k].T
+
+    # Reconstruct back to original space
+    reconstructed = projected @ components[:k] + mean
+
+    return reconstructed
