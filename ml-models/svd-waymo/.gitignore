@@ -4,9 +4,12 @@ __pycache__/
 
 # Virtual environment
 .venv/
+.venv-waymo/
 
 # Images / outputs
 *.png
 
 # Dataset
 ~/datasets/.venv/
+~/datasets/.venv-waymo/
+

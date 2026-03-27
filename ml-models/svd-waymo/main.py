@@ -2,32 +2,76 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+# Import existing PCA/SVD functions
 from svd_pca import compute_pca_svd, project_data, reconstruct_data
+
 from mpl_toolkits.mplot3d import Axes3D
-from kitti_loader import load_kitti_bin
+
+# Choose dataset loader (waymo_loader or kitti_loader)
+from kitti_loader import load_kitti_bin 
+from waymo_loader import load_waymo_frame
+from data_loaders import(
+    load_kitti_bin,
+    load_waymo_npy_frames,
+    batch_waymo_frames,
+    load_nuscenes_bin,
+    batch_nuscenes_frames
+)
+
 from sklearn.cluster import DBSCAN
 
+# ----------------------------
+# CONFIGURATION
+# ----------------------------
+dataset_choice = "kitti"  # options: "kitti", "waymo", or "nuscenes"
 
-# After loading the KITTI dataset, I had to replace my random data with actual point cloud data from the dataset.
-""" The following code assumes you have the KITTI dataset downloaded and the `kitti_loader` module,
-    properly set up to read the binary point cloud files.
+# Paths for each dataset
+kitti_file = "./datasets/kitti/0000000000.bin"
+waymo_folder = "./datasets/waymo_npy"  # folder with Waymo .npy frames
+nuscenes_folder = "./datasets/nuscenes_bin"  # folder with Nuscenes .bin frames
 
-    That was this here below:-
+# Optional: how many frames to load (None = all)
+batch_size = 4  # number of frames per batch
+max_frames = 100
 
-    # Simulated 3D point cloud
-    np.random.seed(42)
-    points = np.random.rand(100, 3)
+# ----------------------------
+# LOAD DATA
+# ----------------------------
+if dataset_choice.lower() == "kitti":
+    # KITTI is usually one frame per file, so we wrap it in a batch manually
+    points = load_kitti_bin(kitti_file)
+    batches = [points]  # single "batch" with 1 frame
+    print("Loaded KITTI shape:", points.shape)
 
-"""
-file_path = os.path.expanduser("~/datasets/kitti/0000000000.bin")
+elif dataset_choice.lower() == "waymo":
+    frames = load_waymo_npy_frames(waymo_folder, max_frames=max_frames)
+    batches = batch_waymo_frames(frames, batch_size=batch_size)
+    print(f"Loaded Waymo frames: {len(frames)}, batches: {len(batches)}")
 
-points = load_kitti_bin(file_path)
+elif dataset_choice.lower() == "nuscenes":
+    frames = load_nuscenes_bin(nuscenes_folder, max_frames=max_frames)
+    batches = batch_nuscenes_frames(frames, batch_size=batch_size)
+    print(f"Loaded Nuscenes frames: {len(frames)}, batches: {len(batches)}")
 
-# Separating spatial + intensity data
-spatial_points = points[:, :3] # (X, Y)
-intensity = points[:, :3] 
+else:
+    raise ValueError("Invalid dataset choice. Please choose 'kitti', 'waymo', or 'nuscenes'.")
 
-print("Loaded KITTI shape:", spatial_points.shape)
+# ----------------------------
+# EXAMPLE PROCESSING LOOP
+# ----------------------------
+for batch_idx, batch in enumerate(batches):
+    # batch is a list/array of frames
+    print(f"Processing batch {batch_idx+1}/{len(batches)} with {len(batch)} frames")
+    # Example: run DBSCAN or your model here on the batch
+    # dbscan_result = run_dbscan(batch)
+
+
+# Separating spatial + intensity data, keep only XYZ for PCA/SVD intensity coloring later
+spatial_points = points[:, :3] # (X, Y, Z)
+intensity = points[:, 3] # Intensity values
+
+print("Loaded Original shape:", points.shape)
+print("Loaded Spatial points shape:", spatial_points.shape)
 
 # Apply PCA via SVD
 components, S, mean = compute_pca_svd(spatial_points)
@@ -41,7 +85,7 @@ print("Top components:\n", components[:2])
 print("Singular values:", S)
 
 # Reconstruct using top 2 principal components
-reconstructed = reconstruct_data(spatial_points, components, mean, k = 2)
+reconstructed = reconstruct_data(projected, components, mean, k = 2)
 
 print("Reconstructed shape:", reconstructed.shape)
 
@@ -84,94 +128,67 @@ labels = clustering.labels_
 print("Number of clusters detected:", len(set(labels)) - (1 if -1 in labels else 0))
 print("Cluster labels:", set(labels))
 
-
-# VISUALIZATIONS
+# ----------------------------
+# 3D Visualization
+# ----------------------------
 
 # Visualizing the original 3D data (first 2 dimensions for simplicity)
-plt.figure(figsize=(8, 6))
-plt.scatter(
-    spatial_points[:, 0],
-    spatial_points[:, 1],
-    c = intensity,
-    cmap = 'viridis',
-    s = 1
-)
-
-plt.title("KITTI LiDAR Top View")
-plt.colorbar(label = "Intensity")
-
-plt.xlabel("X")
-plt.ylabel("Y")
-plt.savefig("kitti_topview.png")
+fig = plt.figure(figsize=(8,6))
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(spatial_points[:,0], spatial_points[:,1], spatial_points[:,2], s=0.5, c='blue')
+ax.set_title(f"{dataset_choice.upper()} LiDAR 3D Points")
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.savefig(f"{dataset_choice.upper()}_3d.png")
 plt.show()
 plt.close()
 
-# 3D visualization of original point cloud data
-fig = plt.figure(figsize=(10, 7))
-ax = fig.add_subplot(111, projection = '3d')
-
-ax.scatter(
-    spatial_points[:, 0],
-    spatial_points[:, 1],
-    spatial_points[:, 2],
-    c = intensity,
-    cmap = 'viridis',
-    s = 1
-)
-
-ax.set_title("KITTI LiDAR 3D View")
-ax.set_xlabel("X")
-ax.set_ylabel("Y")
-ax.set_zlabel("Z")
-
-plt.savefig("kitti_3d.png")
+# ----------------------------
+# 2D PCA Projection Visualization
+# ----------------------------
+plt.figure(figsize=(8,6))
+plt.scatter(projected[:,0], projected[:,1], s=0.5, c='red')
+plt.title(f"{dataset_choice.upper()} PCA 2D Projection")
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+plt.axis('equal')
+plt.savefig(f"{dataset_choice.upper()}_2d_pca.png")
 plt.show()
+plt.close()
 
-# 2D visualization of original point cloud data
-plt.figure(figsize=(10, 7))
 
-plt.scatter(
-    spatial_points[:, 0],
-    spatial_points[:, 1],
-    c=intensity,
-    cmap='viridis',
-    s=1 
-)
-
-plt.title("Original LiDAR")
-plt.savefig("kitti_original.png")
-plt.show()
 
 # 3D visualization of reconstructed point cloud data
-plt.figure()
-
-plt.scatter(
-    reconstructed[:, 0],
-    reconstructed[:, 1],
-    c=intensity,
-    cmap='viridis',
-    s=1
-)
-
-plt.title("Reconstructed LiDAR")
-plt.savefig("Reconstructed.png")
+plt.figure(figsize=(8,6))
+ax = plt.subplot(111, projection='3d')
+ax.scatter(reconstructed[:,0], reconstructed[:,1], reconstructed[:,2], s=0.5, c='green')
+ax.set_title(f"{dataset_choice.upper()} Reconstructed 3D Points (Top 2 PCs)")
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.savefig(f"{dataset_choice.upper()}_reconstructed_3d.png")
 plt.show()
+plt.close()
+
 
 # Noise Visualization
 noise = spatial_points - reconstructed
 
-plt.figure()
+plt.figure(figsize=(8,6))
 plt.scatter(
     noise[:, 0],
     noise[:, 1],
-    c=intensity,
-    cmap='viridis',
-    s=1
+    s=0.5,
+    c='red'
 )
-
-plt.title("Noise / Residual")
-plt.savefig("Noise.png")
+plt.title(f"Noise / Residual Visualization from {dataset_choice.upper()} PCA Reconstruction")
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.savefig(f"Noise_in_{dataset_choice.upper()}.png")
 plt.show()
+plt.close()
+
 
 # Residual norm visualization (Anomalies Visualization)
 plt.figure()
@@ -184,36 +201,41 @@ plt.scatter(
 )
 
 plt.colorbar(label = "Residual Magnitude")
-plt.title("Anomaly Map Visualization (Top View)")
-plt.savefig("anomaly_map.png")
+plt.title(f"Anomaly Map Visualization for {dataset_choice.upper()}")
+plt.savefig(f"anomaly_map_in_{dataset_choice.upper()}.png")
 plt.show()
+plt.close()
 
 # Visualize anomalies in 3D ONLY
-plt.figure()
-
-# Normal points (Light)
-plt.scatter(
-    spatial_points[~anomalies, 0],
-    spatial_points[~anomalies, 1],
-    s = 1,
-    alpha = 0.3,
-    label = "Normal points",
-    c = 'blue'
-)
-
-# Anomalies (Hightlighted)
-plt.scatter(
+plt.figure(figsize=(8,6))
+ax = plt.subplot(111, projection='3d')
+ax.scatter(
     spatial_points[anomalies, 0],
     spatial_points[anomalies, 1],
-    s = 2,
-    alpha = 0.8,
-    label = "Anomalies",
-    c = 'red'
+    spatial_points[anomalies, 2],
+    c='red',
+    s=2,
+    alpha=0.8,
+    label = "Anomalies"
+)
+ax.scatter(
+    spatial_points[anomalies, 0],
+    spatial_points[anomalies, 1],
+    spatial_points[anomalies, 2],
+    c='blue',
+    s=1,
+    alpha=0.3,
+    label = "Normal points"
 )
 plt.legend()
-plt.title("Detected Anomalies in KITTI LiDAR (Top View)")
-plt.savefig("detected_anomalies.png")
+ax.set_title(f"{dataset_choice.upper()} Detected Anomalies (3D)")
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.savefig(f"{dataset_choice.upper()}_anomalies_3d.png")
 plt.show()
+plt.close()
+
 
 # Visualizing clusters of anomalies in 3D
 plt.figure()
@@ -226,10 +248,11 @@ plt.scatter(
     s = 2
 )
 
-plt.title("Clustered Anomalies in KITTI LiDAR (Top view Objects)")
+plt.title(f"Clustered Anomalies in {dataset_choice.upper()} (Top view Objects)")
 plt.colorbar(label = "Cluster Label")
-plt.savefig("clustered_objects_anomalies.png")
+plt.savefig(f"clustered_objects_anomalies_in_{dataset_choice.upper()}.png")
 plt.show()
+plt.close()
 
 
 # OBJECT REPRESENTATION
@@ -268,6 +291,10 @@ for label in unique_labels:
     )
     plt.gca().add_patch(rect)
 
-plt.title("Detected objects with Bounding Boxes")
-plt.savefig("detected_objects.png")
+plt.legend()
+plt.title("Detected objects with Bounding Boxes in {dataset_choice.upper()}")
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.savefig(f"detected_objects_{dataset_choice.upper()}.png")
 plt.show()
+plt.close()
