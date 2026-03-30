@@ -1,6 +1,9 @@
 # Python cache
 __pycache__/
 *.pyc
+*.npy
+*.pt
+*.ckpt
 
 # Virtual environment
 .venv/
@@ -12,4 +15,5 @@ __pycache__/
 # Dataset
 ~/datasets/.venv/
 ~/datasets/.venv-waymo/
+data/
 
