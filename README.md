@@ -16,7 +16,19 @@ The following diagram illustrates the overall pipeline of the MasterCube Ground 
 
 *Figure: MasterCube Ground Station architecture integrating LiDAR perception, anomaly detection, and satellite telemetry.*
 
+
 ---
+## ⚙️ Installation
+
+```bash
+git clone https://github.com/JohnAdam-123/mastercube-groundstation.git
+cd mastercube-groundstation
+
+python3.10 -m venv .venv-mastercube
+source .venv-mastercube/bin/activate
+
+pip install -r requirements.txt '''
+
 
 ## 🔬 Abstract
 
