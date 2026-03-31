@@ -6,6 +6,16 @@ Mastercube Ground Station is a research-driven satellite ground station system t
 
 The project combines real-time TCP/IP telemetry, Yamcs-based mission control, and advanced AI models to enable robust anomaly detection and 3D point cloud understanding in space communication systems.
 
+## 🚀 System Architecture
+
+The following diagram illustrates the overall pipeline of the MasterCube Ground Station system, including data acquisition, processing, anomaly detection, and visualization.
+
+<p align="center">
+  <img src="images/architecture.png" width="800"/>
+</p>
+
+*Figure: MasterCube Ground Station architecture integrating LiDAR perception, anomaly detection, and satellite telemetry.*
+
 ---
 
 ## 🔬 Abstract
