@@ -1,0 +1,5 @@
+numpy
+matplotlib
+scikit-learn
+tensorflow==2.11
+waymo-open-dataset-tf-2-11-0

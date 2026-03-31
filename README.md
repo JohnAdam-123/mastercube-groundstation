@@ -27,7 +27,8 @@ cd mastercube-groundstation
 python3.10 -m venv .venv-mastercube
 source .venv-mastercube/bin/activate
 
-pip install -r requirements.txt '''
+pip install -r requirements.txt
+```
 
 
 ## 🔬 Abstract
